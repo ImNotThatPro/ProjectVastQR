@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QR Maker — Link / Image / Video → QR</title>
+  <meta name="description" content="Convert links, images, and videos into QR codes — simple, smooth, optimized UI (single HTML file)." />
+
+  <!-- QR library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#4f46e5;--glass: rgba(255,255,255,0.04)}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0; background:linear-gradient(180deg,#071023 0%, #071020 60%); color:#e6eef8; -webkit-font-smoothing:antialiased}
+    .topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: var(--card);
+      box-shadow: 0 2px 16px rgba(15,23,42,0.13);
+      padding: 0 0 0 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      min-height: 58px;
+    }
+    .topbar-logo {
+      width: 44px;
+      height: 44px;
+      margin-left: 16px;
+      margin-right: 12px;
+      border-radius: 10px;
+      background: #fff;
+      opacity: 0.9;
+      box-shadow: 0 1px 4px rgba(15,23,42,0.10);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .topbar .tabs {
+      margin: 0 0 0 24px;
+    }
+    .topbar .small {
+      margin-left: auto;
+      margin-right: 24px;
+    }
+    .wrap {
+      max-width:980px;
+      margin: 36px auto;
+      padding: 24px;
+      padding-top: 90px; /* add space for topbar */
+    }
+    @media (max-width:640px){
+      .topbar-logo { width: 36px; height: 36px; margin-left: 4px; margin-right: 6px; }
+      .topbar .tabs { margin-left: 8px; }
+      .topbar .small { margin-right: 8px; }
+      .wrap { padding-top: 110px; }
+    }
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:700;color:white;box-shadow:0 6px 18px rgba(15,23,42,0.6)}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:4px 0 0;color:var(--muted);font-size:13px}
+    .card{background:var(--card);border-radius:14px;padding:18px;backdrop-filter: blur(6px);box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+    .tabs{display:flex;background:var(--glass);padding:6px;border-radius:10px}
+    .tab{padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600;color:var(--muted)}
+    .tab.active{background:linear-gradient(90deg,rgba(255,255,255,0.04), rgba(255,255,255,0.02));color:white;box-shadow:inset 0 -2px 0 rgba(255,255,255,0.02)}
+    .field{margin-bottom:12px}
+    label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted)}
+    input[type=text], input[type=url], textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit;font-size:14px}
+    input[type=file]{display:block}
+    .row{display:flex;gap:12px}
+    .row > *{flex:1}
+    .actions{display:flex;gap:10px;align-items:center}
+    button{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .preview{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-top:12px}
+    .qcard{background:linear-gradient(180deg,#091022,#071017);padding:14px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:220px}
+    .qimg{width:220px;height:220px;background:white;padding:12px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+    .meta{font-size:13px;color:var(--muted);text-align:center}
+    footer{margin-top:16px;color:var(--muted);font-size:13px}
+    .hint{font-size:12px;color:#9bb0c8}
+    .small{font-size:12px;color:var(--muted)}
+    .notice{background:rgba(79,70,229,0.06);padding:10px;border-radius:8px;color:#dfe8ff;border:1px solid rgba(79,70,229,0.12);font-size:13px}
+    @media (max-width:640px){.row{flex-direction:column}.qimg{width:180px;height:180px}}
+    /* ...existing code... */
+    .guide-section {
+      max-width: 700px;
+      margin: 40px auto 32px auto;
+      padding: 0 16px;
+    }
+    .guide-card {
+      background: var(--card);
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(2,6,23,0.13);
+      padding: 28px 22px 22px 22px;
+      color: #e6eef8;
+    }
+    .guide-card h2 {
+      margin-top: 0;
+      font-size: 20px;
+      color: #fff;
+      letter-spacing: 0.01em;
+    }
+    .guide-card ol {
+      margin: 16px 0 0 18px;
+      padding: 0;
+      font-size: 15px;
+    }
+    .guide-card ul {
+      margin: 6px 0 0 18px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    @media (max-width:640px){
+      .guide-card { padding: 18px 8px 14px 8px; }
+      .guide-section { margin: 28px auto 18px auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-logo" aria-label="Logo placeholder"></div>
+    <div class="tabs" role="tablist" aria-label="Choose type">
+      <div class="tab active" data-type="link">URL</div>
+      <div class="tab" data-type="image">Image</div>
+      <div class="tab" data-type="video">Video</div>
+    </div>
+    <div class="small">Works on desktop & mobile</div>
+    <div class="color-switcher" title="Change color theme">
+      <button class="color-btn" data-theme="default" aria-label="Default theme" style="background:linear-gradient(180deg,#071023 0%, #071020 60%);"></button>
+      <button class="color-btn" data-theme="white" aria-label="White theme" style="background:#fff;border:1px solid #e5e7eb"></button>
+      <button class="color-btn" data-theme="black" aria-label="Black theme" style="background:#000;"></button>
+    </div>
+    <div class="topbar-auth-dropdown" tabindex="0">
+      <span class="auth-icon" aria-label="Account"></span>
+      <div class="auth-dropdown-menu">
+        <button class="auth-btn" id="auth-login-btn">Login</button>
+        <button class="auth-btn" id="auth-register-btn">Register</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <header>
+      <div class="logo">QR</div>
+      <div>
+        <h1>QR Maker — Link · Image · Video</h1>
+        <p class="lead">Quickly convert links, images, and videos into QR codes. Clean, smooth, browser-optimized interface.</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <!-- Remove the .controls div here -->
+      <!-- Link panel -->
+      <div id="panel-link" class="panel">
+        <div class="field">
+          <label>URL (example: https://example.com)</label>
+          <input id="input-url" type="url" placeholder="Paste your link here" />
+        </div>
+        <div class="field row">
+          <button id="btn-gen-link">Generate QR</button>
+          <button class="ghost" id="btn-clear-link">Clear</button>
+        </div>
+      </div>
+
+      <!-- Image panel -->
+      <div id="panel-image" class="panel" style="display:none">
+        <div class="field">
+          <label>Upload an image (it will be compressed if needed for QR encoding)</label>
+          <div id="drop-area" class="drop-area">
+            <span id="drop-area-text">Drop image here or <span id="choose-file-link" style="color:#4f46e5;cursor:pointer;text-decoration:underline;">press here</span></span>
+            <input id="input-image" type="file" accept="image/*" style="display:none" />
+          </div>
+          <div class="hint" id="image-hint">
+            QR codes can only embed very small images (a few KB max). If your image is too large, you will be notified.
+          </div>
+          <div class="image-error" id="image-error" style="display:none"></div>
+        </div>
+        <div class="field row">
+          <button id="btn-gen-image">Generate QR from Image</button>
+          <button class="ghost" id="btn-clear-image">Clear</button>
+        </div>
+      </div>
+
+      <!-- Video panel -->
+      <div id="panel-video" class="panel" style="display:none">
+        <div class="field">
+          <label>Video link (YouTube / MP4 URL / Google Drive / etc.)</label>
+          <input id="input-video" type="url" placeholder="Paste your video link (public link recommended)" />
+        </div>
+        <div class="field row">
+          <button id="btn-gen-video">Generate QR</button>
+          <button class="ghost" id="btn-clear-video">Clear</button>
+        </div>
+        <div class="notice" style="margin-top:10px">
+          Large videos can’t be embedded directly into QR codes. Please upload to YouTube/Drive/etc. and use the link.
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="preview">
+        <div class="qcard">
+          <div id="qwrap" class="qimg">
+            <canvas id="qr-canvas" width="220" height="220" style="display:none"></canvas>
+            <img id="qr-img" alt="QR preview" style="max-width:100%;max-height:100%;display:none"/>
+            <div id="qr-placeholder" class="small">No QR yet<br/><span class="hint">Generate one to preview</span></div>
+          </div>
+          <div class="meta" id="qmeta">—</div>
+          <div style="display:flex;gap:8px">
+            <button id="btn-download" class="ghost">Download PNG</button>
+            <button id="btn-copy-qr" class="ghost">Copy QR</button>
+            <!-- Removed the old Copy Data button -->
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:260px">
+          <div class="info-big"><strong>Info:</strong></div>
+          <div class="info-big-content">
+            You can create QR codes from:
+            <ul>
+              <li>Direct links</li>
+              <li>Images (small, compressed automatically)</li>
+              <li>Videos — paste a public video link</li>
+            </ul>
+          </div>
+          <div style="margin-top:12px" class="tips-big"><strong>Tips:</strong>
+            <ol style="margin:6px 0 0 18px;">
+              <li>For large images/videos: upload to a service (Imgur, Drive, YouTube), then generate a QR for the link.</li>
+              <li>Bigger data = more complex QR, which some scanners may struggle with.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+      <footer>
+        <div class="small">Single-file version — you can save as <code>qr-maker.html</code> and open directly in your browser. All processing happens locally (client-side).</div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Simple Guide Section -->
+  <section class="guide-section">
+    <div class="guide-card">
+      <h2>How to Create a QR Code</h2>
+      <ol>
+        <li><strong>Choose a type:</strong> Use the bar at the top to select Link, Image, or Video.</li>
+        <li><strong>Enter your data:</strong>
+          <ul>
+            <li>For <b>Link</b>: Paste your URL (e.g., https://example.com).</li>
+            <li>For <b>Image</b>: Upload a small image file.</li>
+            <li>For <b>Video</b>: Paste a public video link (YouTube, Google Drive, etc.).</li>
+          </ul>
+        </li>
+        <li><strong>Generate QR:</strong> Click the <b>Generate QR</b> button.</li>
+        <li><strong>Preview:</strong> See your QR code in the preview area.</li>
+        <li><strong>Download or Copy:</strong> Use <b>Download PNG</b> to save, or <b>Copy QR</b> to copy the image.</li>
+      </ol>
+      <p class="small" style="margin-top:12px;color:var(--muted)">
+        <b>Tip:</b> For best results, use short links and small images. Large files may not fit in a QR code.
+      </p>
+    </div>
+  </section>
+
+  <!-- Persistent Bottom Info Section (not a fixed bar) -->
+  <section class="bottom-info-section">
+    <div class="bottom-info-card">
+      <h2>🌐 More from Our Team</h2>
+      <p>
+        <a href="#" target="_blank">Company Website</a> &nbsp;|&nbsp;
+        <a href="#" target="_blank">Blog</a> &nbsp;|&nbsp;
+        <a href="#" target="_blank">Contact</a>
+      </p>
+      <p class="bottom-note">
+        Stay tuned for updates, new features, and more tools coming soon!
+      </p>
+    </div>
+  </section>
+
+  <style>
+    /* ...existing code... */
+    .bottom-info-section {
+      max-width: 800px;
+      margin: 48px auto 32px auto;
+      padding: 0 16px;
+    }
+    .bottom-info-card {
+      background: var(--card);
+      border-radius: 18px;
+      box-shadow: 0 4px 32px rgba(2,6,23,0.13);
+      padding: 36px 28px 28px 28px;
+      color: #e6eef8;
+      text-align: center;
+    }
+    .bottom-info-card h2 {
+      margin-top: 0;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: 0.01em;
+      margin-bottom: 14px;
+    }
+    .bottom-info-card a {
+      color: #60a5fa;
+      text-decoration: underline;
+      font-weight: 500;
+      transition: color 0.2s;
+      font-size: 17px;
+    }
+    .bottom-info-card a:hover {
+      color: #a5b4fc;
+    }
+    .bottom-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    @media (max-width:640px){
+      .bottom-info-card { padding: 18px 8px 14px 8px; }
+      .bottom-info-section { margin: 28px auto 18px auto; }
+    }
+    /* Remove the fixed .bottom-bar if present */
+    .bottom-bar, .bottom-bar-content { display: none !important; }
+    /* ...existing code... */
+    .color-switcher {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 18px;
+      margin-left: 12px;
+    }
+    .color-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      outline: none;
+      cursor: pointer;
+      transition: border 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 4px rgba(15,23,42,0.10);
+      padding: 0;
+    }
+    .color-btn.selected, .color-btn:focus {
+      border: 2.5px solid #6366f1;
+      box-shadow: 0 0 0 2px #6366f133;
+    }
+    @media (max-width:640px){
+      .color-switcher { margin-right: 4px; }
+      .color-btn { width: 22px; height: 22px; }
+    }
+  </style>
+
+  <script>
+    // Helpers
+    const $ = (s) => document.querySelector(s);
+    const tabs = document.querySelectorAll('.tab');
+    let currentType = 'link';
+
+    tabs.forEach(t => t.addEventListener('click', ()=>{
+      tabs.forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      const type = t.dataset.type;
+      currentType = type;
+      document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+      document.getElementById('panel-'+type).style.display='block';
+      clearPreview();
+    }));
+
+    function setPlaceholder(text){
+      $('#qr-placeholder').innerHTML = text;
+      $('#qr-placeholder').style.display = 'block';
+      $('#qr-img').style.display = 'none';
+      $('#qr-canvas').style.display = 'none';
+    }
+    function clearPreview(){
+      setPlaceholder('No QR yet<br/><span class="hint">Generate one to preview</span>');
+      $('#qmeta').textContent = '—';
+    }
+
+    function renderQRCode(data, options={}){
+      const size = options.size || 1024;
+      return QRCode.toDataURL(data, {
+        width: size, margin:1,
+        color: {dark: '#0f1724', light: '#ffffff00'}
+      });
+    }
+
+    function showDataURL(dataURL, label){
+      const img = $('#qr-img');
+      img.src = dataURL;
+      img.style.display = 'block';
+      $('#qr-canvas').style.display = 'none';
+      $('#qr-placeholder').style.display = 'none';
+      $('#qmeta').textContent = label;
+    }
+
+    async function generateAndShow(data, label){
+      try{
+        const small = await renderQRCode(data, {size:520});
+        showDataURL(small, label);
+        window.lastQR = small;
+        window.lastData = data;
+      }catch(err){
+        alert('Could not generate QR — data too large or error: '+err.message);
+        console.error(err);
+      }
+    }
+
+    // Link
+    $('#btn-gen-link').addEventListener('click', async ()=>{
+      const url = $('#input-url').value.trim();
+      if(!url){alert('Please paste a URL');return}
+      await generateAndShow(url, 'URL — '+url);
+      await sendToBackend(url); // <-- This sends the URL to your FastAPI backend!
+    });
+    $('#btn-clear-link').addEventListener('click', ()=>{
+      $('#input-url').value='';
+      clearPreview();
+    });
+
+    // Image QR generation (single function)
+    async function generateImageQR() {
+      const inputImage = $('#input-image');
+      const file = inputImage.files[0];
+      const imageHint = document.getElementById('image-hint');
+      const imageError = document.getElementById('image-error');
+      imageError.style.display = "none";
+      imageHint.style.display = "";
+
+      if(!file){
+        imageError.textContent = "❗ Please select an image file.";
+        imageError.style.display = "block";
+        imageHint.style.display = "none";
+        clearPreview();
+        return;
+      }
+      if(!file.type.startsWith('image/')){
+        imageError.textContent = "❗ File is not an image.";
+        imageError.style.display = "block";
+        imageHint.style.display = "none";
+        clearPreview();
+        return;
+      }
+
+      try {
+        const img = await fileToImage(file);
+        const MAX_BYTES = 2000;
+        let quality = 0.92;
+        let canvas = document.createElement('canvas');
+        let ctx = canvas.getContext('2d');
+
+        let [w,h] = [img.width, img.height];
+        const MAX_DIM = 600;
+        if(Math.max(w,h)>MAX_DIM){
+          const scale = MAX_DIM/Math.max(w,h);
+          w = Math.round(w*scale);
+          h = Math.round(h*scale);
+        }
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(img,0,0,w,h);
+        let dataURL = canvas.toDataURL('image/jpeg', quality);
+        let bytes = dataURLtoBytes(dataURL).length;
+
+        while(bytes > MAX_BYTES && quality>0.25){
+          quality -= 0.08;
+          canvas.width = Math.round(canvas.width*0.9);
+          canvas.height = Math.round(canvas.height*0.9);
+          ctx = canvas.getContext('2d');
+          ctx.drawImage(img,0,0,canvas.width,canvas.height);
+          dataURL = canvas.toDataURL('image/jpeg', quality);
+          bytes = dataURLtoBytes(dataURL).length;
+        }
+
+        if(bytes > MAX_BYTES){
+          imageError.textContent = "❗ Image is too large for QR code. Please use a smaller image or upload it elsewhere and use the link option.";
+          imageError.style.display = "block";
+          imageHint.style.display = "none";
+          clearPreview();
+          return;
+        }
+        imageError.style.display = "none";
+        imageHint.style.display = "";
+        await generateAndShowImageQR(dataURL, 'Image (data URI) — '+Math.round(bytes)+' bytes');
+      } catch (err) {
+        imageError.textContent = "❗ Something went wrong. Please check your file and try again.";
+        imageError.style.display = "block";
+        imageHint.style.display = "none";
+        clearPreview();
+      }
+    }
+
+    // --- Use a special QR render for images (less maze-like) ---
+    async function generateAndShowImageQR(data, label){
+      try{
+        const small = await QRCode.toDataURL(data, {
+          width: 520,
+          margin: 1,
+          color: {dark: '#0f1724', light: '#ffffff00'},
+          errorCorrectionLevel: 'L', // lowest error correction for max capacity
+          version: 40 // largest QR version
+        });
+        showDataURL(small, label);
+        window.lastQR = small;
+        window.lastData = data;
+      }catch(err){
+        const imageError = document.getElementById('image-error');
+        imageError.textContent = "❗ Could not generate QR — data too large or error: " + err.message;
+        imageError.style.display = "block";
+        document.getElementById('image-hint').style.display = "none";
+        clearPreview();
+      }
+    }
+
+    // Video
+    $('#btn-gen-video').addEventListener('click', async ()=>{
+      const url = $('#input-video').value.trim();
+      if(!url){alert('Please paste a video link');return}
+      await generateAndShow(url, 'Video URL — '+url);
+    });
+    $('#btn-clear-video').addEventListener('click', ()=>{
+      $('#input-video').value='';
+      clearPreview();
+    });
+
+    // Download
+    $('#btn-download').addEventListener('click', ()=>{
+      if(!window.lastQR){alert('No QR to download');return}
+      const a = document.createElement('a');
+      a.href = window.lastQR;
+      a.download = 'qr.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    // Copy QR (as image with white background)
+    $('#btn-copy-qr').addEventListener('click', async ()=>{
+      if(!window.lastQR){alert('No QR to copy');return}
+      try {
+        // Create a canvas with white background
+        const img = new Image();
+        img.src = window.lastQR;
+        await new Promise(res => { img.onload = res; });
+
+        const size = Math.max(img.width, img.height, 220);
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, size, size);
+        // Center the QR
+        const x = (size - img.width) / 2;
+        const y = (size - img.height) / 2;
+        ctx.drawImage(img, x, y, img.width, img.height);
+
+        const dataUrl = canvas.toDataURL('image/png');
+        const data = await fetch(dataUrl);
+        const blob = await data.blob();
+        await navigator.clipboard.write([
+          new ClipboardItem({ [blob.type]: blob })
+        ]);
+        alert('QR image copied to clipboard (with white background)');
+      } catch (e) {
+        alert('Copying QR image is not supported in this browser.');
+      }
+    });
+
+    // Theme switching logic
+    const themes = {
+      default: {
+        '--bg': '#0f1724',
+        '--card': '#0b1220',
+        '--muted': '#9aa4b2',
+        '--accent': '#4f46e5',
+        '--glass': 'rgba(255,255,255,0.04)',
+        bodyBg: 'linear-gradient(180deg,#071023 0%, #071020 60%)',
+        text: '#e6eef8'
+      },
+      white: {
+        '--bg': '#f8fafc',
+        '--card': '#fff',
+        '--muted': '#64748b',
+        '--accent': '#6366f1',
+        '--glass': 'rgba(0,0,0,0.03)',
+        bodyBg: '#fff',
+        text: '#222'
+      },
+      black: {
+        '--bg': '#000',
+        '--card': '#18181b',
+        '--muted': '#a1a1aa',
+        '--accent': '#6366f1',
+        '--glass': 'rgba(255,255,255,0.03)',
+        bodyBg: '#000',
+        text: '#f4f4f5'
+      }
+    };
+
+    function setTheme(theme) {
+      const t = themes[theme] || themes.default;
+      for (const key in t) {
+        if (key.startsWith('--')) {
+          document.documentElement.style.setProperty(key, t[key]);
+        }
+      }
+      document.body.style.background = t.bodyBg;
+      document.body.style.color = t.text;
+      // Card text color
+      document.querySelectorAll('.card,.guide-card,.bottom-info-card').forEach(el=>{
+        el.style.color = t.text;
+      });
+      // Mark selected button
+      document.querySelectorAll('.color-btn').forEach(btn=>{
+        btn.classList.toggle('selected', btn.dataset.theme === theme);
+      });
+    }
+    document.querySelectorAll('.color-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        setTheme(btn.dataset.theme);
+        localStorage.setItem('vastqr_theme', btn.dataset.theme);
+      });
+    });
+    // On load, set theme from storage or default
+    setTheme(localStorage.getItem('vastqr_theme') || 'default');
+
+    // Utilities
+    function fileToImage(file){
+      return new Promise((res,rej)=>{
+        const reader = new FileReader();
+        reader.onload = ()=>{
+          const img = new Image();
+          img.onload = ()=>res(img);
+          img.onerror = rej;
+          img.src = reader.result;
+        };
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      })
+    }
+    function dataURLtoBytes(dataURL){
+      const base64 = dataURL.split(',')[1];
+      const raw = atob(base64);
+      const arr = new Uint8Array(raw.length);
+      for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+      return arr;
+    }
+
+    clearPreview();
+  </script>
+  <style>
+    /* ...existing code... */
+    .drop-area {
+      border: 2px dashed var(--muted, #9aa4b2);
+      border-radius: 10px;
+      padding: 28px 0;
+      text-align: center;
+      background: var(--glass, rgba(255,255,255,0.04));
+      color: var(--muted, #9aa4b2);
+      font-size: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .drop-area.dragover {
+      border-color: var(--accent, #4f46e5);
+      background: rgba(99,102,241,0.08);
+      color: var(--accent, #4f46e5);
+    }
+    .drop-area input[type="file"] {
+      display: none;
+    }
+    .big-hint {
+      font-size: 16px !important;
+      color: #eab308 !important;
+      background: #23272e;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      margin-bottom: 0;
+      line-height: 1.6;
+    }
+    @media (max-width:640px){
+      .drop-area { font-size: 14px; padding: 18px 0; }
+      .big-hint { font-size: 15px !important; padding: 8px 6px; }
+    }
+  </style>
+
+  <script>
+    // Drag & drop for image upload
+    const dropArea = document.getElementById('drop-area');
+    const inputImage = document.getElementById('input-image');
+    const dropAreaText = document.getElementById('drop-area-text');
+    const btnGenImage = document.getElementById('btn-gen-image');
+    const btnClearImage = document.getElementById('btn-clear-image');
+    const chooseFileLink = document.getElementById('choose-file-link');
+    const toImageLink = document.getElementById('to-image-link');
+
+    // Drop area click or "press here" link opens file dialog
+    dropArea.onclick = (e) => {
+      // Only trigger if not clicking the "to-image-link"
+      if (e.target !== toImageLink) inputImage.click();
+    };
+    chooseFileLink.onclick = (e) => {
+      e.stopPropagation();
+      inputImage.click();
+    };
+
+    // Drag & drop events
+    dropArea.ondragover = (e) => {
+      e.preventDefault();
+      dropArea.classList.add('dragover');
+      dropAreaText.textContent = "Drop image here";
+    };
+    dropArea.ondragleave = (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+      dropAreaText.innerHTML = 'Drop image here or <span id="choose-file-link" style="color:#4f46e5;cursor:pointer;text-decoration:underline;">press here</span>';
+      document.getElementById('choose-file-link').onclick = (e) => { e.stopPropagation(); inputImage.click(); };
+    };
+    dropArea.ondrop = (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+      dropAreaText.innerHTML = 'Drop image here or <span id="choose-file-link" style="color:#4f46e5;cursor:pointer;text-decoration:underline;">press here</span>';
+      document.getElementById('choose-file-link').onclick = (e) => { e.stopPropagation(); inputImage.click(); };
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const dt = new DataTransfer();
+        dt.items.add(e.dataTransfer.files[0]);
+        inputImage.files = dt.files;
+        dropAreaText.textContent = inputImage.files[0].name;
+        generateImageQR();
+      }
+    };
+
+    // File input change
+    inputImage.onchange = () => {
+      if (inputImage.files && inputImage.files.length > 0) {
+        dropAreaText.textContent = inputImage.files[0].name;
+        generateImageQR();
+      } else {
+        dropAreaText.innerHTML = 'Drop image here or <span id="choose-file-link" style="color:#4f46e5;cursor:pointer;text-decoration:underline;">press here</span>';
+        document.getElementById('choose-file-link').onclick = (e) => { e.stopPropagation(); inputImage.click(); };
+      }
+    };
+
+    // Button click
+    btnGenImage.onclick = generateImageQR;
+
+    // Clear button
+    btnClearImage.onclick = () => {
+      inputImage.value = '';
+      dropAreaText.innerHTML = 'Drop image here or <span id="choose-file-link" style="color:#4f46e5;cursor:pointer;text-decoration:underline;">press here</span>';
+      document.getElementById('choose-file-link').onclick = (e) => { e.stopPropagation(); inputImage.click(); };
+      clearPreview();
+    };
+
+    // "Press here to upload image to link" logic
+    toImageLink.onclick = (e) => {
+      e.preventDefault();
+      // Switch to "Image to Link" panel
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      document.querySelector('.tab[data-type="img2link"]').classList.add('active');
+      document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+      document.getElementById('panel-img2link').style.display='block';
+      clearPreview();
+    };
+
+    // Upload logic (imgbb demo)
+    document.getElementById('btn-img2link-upload').onclick = async function() {
+      const fileInput = document.getElementById('input-img2link');
+      const resultInput = document.getElementById('img2link-result');
+      const hint = document.getElementById('img2link-hint');
+      if (!fileInput.files[0]) {
+        alert('Please select an image.');
+        return;
+      }
+      hint.textContent = 'Uploading...';
+      // You need to get your own imgbb API key for production use!
+      const apiKey = 'YOUR_IMGBB_API_KEY';
+      if (apiKey === 'YOUR_IMGBB_API_KEY') {
+        hint.innerHTML = 'You need to set your own <b>imgbb API key</b> in the code for this to work.';
+        return;
+      }
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+      try {
+        const resp = await fetch('https://api.imgbb.com/1/upload?key=' + apiKey, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await resp.json();
+        if (data && data.data && data.data.url) {
+          resultInput.style.display = 'block';
+          resultInput.value = data.data.url;
+          hint.innerHTML = 'Done! Copy the link above and use it in the Link QR option.';
+        } else {
+          hint.textContent = 'Upload failed. Try again.';
+        }
+      } catch (e) {
+        hint.textContent = 'Upload failed: ' + e.message;
+      }
+    };
+    document.getElementById('btn-img2link-clear').onclick = function() {
+      document.getElementById('input-img2link').value = '';
+      document.getElementById('img2link-result').style.display = 'none';
+      document.getElementById('img2link-result').value = '';
+      document.getElementById('img2link-hint').textContent = 'This will upload your image to imgbb.com and give you a link you can use for QR codes.';
+    };
+  </script>
+  <!-- Add a temporary tab and panel for "Image to Link" -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add tab if not already present
+    if (!document.querySelector('.tab[data-type="img2link"]')) {
+      const tabs = document.querySelector('.tabs');
+      const tempTab = document.createElement('div');
+      tempTab.className = 'tab';
+      tempTab.dataset.type = 'img2link';
+      tempTab.textContent = 'Image → Link';
+      tabs.appendChild(tempTab);
+
+      // Add panel
+      const tempPanel = document.createElement('div');
+      tempPanel.id = 'panel-img2link';
+      tempPanel.className = 'panel';
+      tempPanel.style.display = 'none';
+      tempPanel.innerHTML = `
+        <div class="field">
+          <label>Upload an image to get a public link (temporary demo)</label>
+          <input id="input-img2link" type="file" accept="image/*" />
+          <div class="hint" id="img2link-hint">This will upload your image to <b>imgbb.com</b> and give you a link you can use for QR codes.</div>
+        </div>
+        <div class="field row">
+          <button id="btn-img2link-upload">Upload & Get Link</button>
+          <button class="ghost" id="btn-img2link-clear">Clear</button>
+        </div>
+        <div class="field">
+          <input id="img2link-result" type="text" readonly style="display:none;margin-top:10px;" />
+        </div>
+      `;
+      document.querySelector('.card').appendChild(tempPanel);
+
+      // Tab switching logic
+      tempTab.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+        tempTab.classList.add('active');
+        document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+        tempPanel.style.display='block';
+        clearPreview();
+      });
+
+      // Upload logic (imgbb demo)
+      document.getElementById('btn-img2link-upload').onclick = async function() {
+        const fileInput = document.getElementById('input-img2link');
+        const resultInput = document.getElementById('img2link-result');
+        const hint = document.getElementById('img2link-hint');
+        if (!fileInput.files[0]) {
+          alert('Please select an image.');
+          return;
+        }
+        hint.textContent = 'Uploading...';
+        // You need to get your own imgbb API key for production use!
+        const apiKey = 'YOUR_IMGBB_API_KEY';
+        if (apiKey === 'YOUR_IMGBB_API_KEY') {
+          hint.innerHTML = 'You need to set your own <b>imgbb API key</b> in the code for this to work.';
+          return;
+        }
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+        try {
+          const resp = await fetch('https://api.imgbb.com/1/upload?key=' + apiKey, {
+            method: 'POST',
+            body: formData
+          });
+          const data = await resp.json();
+          if (data && data.data && data.data.url) {
+            resultInput.style.display = 'block';
+            resultInput.value = data.data.url;
+            hint.innerHTML = 'Done! Copy the link above and use it in the Link QR option.';
+          } else {
+            hint.textContent = 'Upload failed. Try again.';
+          }
+        } catch (e) {
+          hint.textContent = 'Upload failed: ' + e.message;
+        }
+      };
+      document.getElementById('btn-img2link-clear').onclick = function() {
+        document.getElementById('input-img2link').value = '';
+        document.getElementById('img2link-result').style.display = 'none';
+        document.getElementById('img2link-result').value = '';
+        document.getElementById('img2link-hint').textContent = 'This will upload your image to imgbb.com and give you a link you can use for QR codes.';
+      };
+    }
+  });
+  </script>
+  <script>
+    async function sendToBackend(text) {
+      const res = await fetch('http://localhost:8000/api/qr', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      alert('Backend says: ' + JSON.stringify(data));
+    }
+
+    async function uploadImageToBackend(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('http://localhost:8000/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      alert('Backend says: ' + JSON.stringify(data));
+    }
+  </script>
+  <!-- ...existing code... -->
+</body>
+</html>
